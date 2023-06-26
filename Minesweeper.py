@@ -1,40 +1,31 @@
 import pygame
 import random
+pygame.init()
 
-# DHB: it is somewhat unnatural to see pygame used before being initialised. Also, it is not cool to execute code in multiple parts
-# DHB: of the file. Define your classes and functions first, then execute your code.
-# Create the game window
-win = pygame.display.set_mode((888, 938))
-pygame.display.set_caption("Minesweeper")
-
-# DHB: all classes in python should contain class comments, rather than preceeding the class with a comment like this
-# Define the Color class to store color values
 class Color(object):
-    # DHB: it is not great to skip the parenthesis around a tuple, even though it is legal. If you would e.g. copy this constant
-    # DHB: elsewhere, such as in a function parameter list, then it would change from being a tuple to being multiple parameters 
-    GRAY = 155, 155, 155
-    BACKGROUND = 120, 120, 120
-    BLACK = 0, 0, 0
-    WHITE = 255, 255, 255
-    DARK_GRAY = 100, 100, 100
-    RED = 255, 0, 0
-    BLUE = 0, 0, 255
-    GREEN = 0, 255, 0
-    DARK_BLUE = 0, 0, 139
-    MAROON = 128, 0, 0
-    TURQUOISE = 48, 213, 200
+    """ Define the Color class to store color values
+    """
+    GRAY = (155, 155, 155)
+    BACKGROUND = (120, 120, 120)
+    BLACK = (0, 0, 0)
+    WHITE = (255, 255, 255)
+    DARK_GRAY = (100, 100, 100)
+    RED = (255, 0, 0)
+    BLUE = (0, 0, 255)
+    GREEN = (0, 255, 0)
+    DARK_BLUE = (0, 0, 139)
+    MAROON = (128, 0, 0)
+    TURQUOISE = (48, 213, 200)
 
-# DHB: incorrect approach to commenting a class
-class TutorialScreen(object): # creates the tutorial screen
+class TutorialScreen(object):
+    """ displays a tutorial screen in the beginning of the game
+    """
     def __init__(self):
-        # DHB: missing function comments in this, and most other functions in this file.
-        # DHB: comments should be in the preceeding line, not as a trailing comment
-        # DHB: also, when parameters are not obvious, it is wise to call them by name rather than position
-        # DHB: e.g. Font(file_path=None, size=30) 
-        self.font = pygame.font.Font(None, 30) # Font for tutorial text
-        # DHB: excellent choice to use named constants instead of hardcoded values
-        self.text_color = Color.BLACK # Color for tutorial text
-        self.instructions = [
+        """ contains the information for the text in the tutorial screen so that it can be used in the draw function
+        """
+        self.font = pygame.font.Font(None, 30)
+        self.text_color = Color.BLACK
+        self.message = [
             "Minesweeper Tutorial",
             "",
             "Left-click to uncover a tile.",
@@ -44,132 +35,133 @@ class TutorialScreen(object): # creates the tutorial screen
             "The numbers say how many mines are adjacent to the tile cleared",
             "",
             "Press R to restart",
+            "Press ESCAPE to quit"
             "",
             "Press SPACE to start the game.",
         ]
 
-    def draw(self): # draws the tutorial screen
-        # DHB: using win as a global variable is a bad practice. It is better to send
-        # DHB: things like this into constructor args and store in member variables.
-        # DHB: When you start unit testing, global variables are a class of hell
-        # DHB: also, pretty sure you should only fill the window with the background color in the top-level draw function
+    def draw(self):
+        """ draws the tutorial screen using the text information from the init function
+        """
         win.fill(Color.BACKGROUND)
-        for i, instruction in enumerate(self.instructions):
+        for i, instruction in enumerate(self.message):
             text = self.font.render(instruction, True, self.text_color)
             text_rect = text.get_rect(center=(win.get_width() // 2, 100 + i * 30))
             win.blit(text, text_rect)
-        # DHB: I'm pretty certain only the top-level draw function should call display.update 
-        pygame.display.update() # Update the display
 
     def handle_events(self, events):
+        """ causes the transition from the tutorial state to the game state
+        """
         for event in events:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    # Transition to the game state
-                    # DHB: game is a separate object. one should never modify the contents of member variables
-                    # DHB: directly on another object. Instead call a function such as "set_state".
                     game.state = "game"
 
-class GameWonScreen(object): # creates the victory screen
+
+class GameWonScreen(object):
+    """ displays the game won screen
+    """
     def __init__(self):
-        self.font = pygame.font.Font(None, 30) # Font for win text
-        self.text_color = Color.BLACK # Color for win text
-        # DHB: instructions is not a reasonable variable name here
-        self.instructions = [
+        """ contains the text info to use in the draw function
+        """
+        self.font = pygame.font.Font(None, 30)
+        self.text_color = Color.BLACK
+        self.message = [
             "Congratulations! You win!",
             "Would you like to play again?",
             "",
-            "Press R to restart"
+            "Press R to restart",
+            "Press ESCAPE to quit"
         ]
 
-    def draw(self): # draws the win screen
-        # DHB: see comments elsewhere regarding fill and update
+    def draw(self):
+        """ draws the game won screen using the information in the init function
+        """
         win.fill(Color.BACKGROUND)
-        for i, instruction in enumerate(self.instructions):
+        for i, instruction in enumerate(self.message):
             text = self.font.render(instruction, True, self.text_color)
-            # DHB: generally its wise to not put too much in the same line. Here, I'd move the calculations to separate variables
-            # DHB: e.g.
-            #      x = win.get_width() // 2
-            #      y = 100 + i * 30
-            # DHB: while the other way works just fine, working in this fashion leads to bugs
             text_rect = text.get_rect(center=(win.get_width() // 2, 100 + i * 30))
             win.blit(text, text_rect)
 
-        pygame.display.update() # Update the display
+        pygame.display.update()
 
     def handle_events(self, events):
+        """ restarts the program when R is pressed and quits the program when ESCAPE is pressed
+        """
         for event in events:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
-                    # restart to the game state
                     game.restart()
+                if event.key == pygame.K_ESCAPE:
+                    run = False
 
-class ResetButton(object): # creates the reset button
+class ResetButton(object):
+    """ displays an image which calls the reset function when clicked
+    """
     def __init__(self):
         self.image = pygame.transform.scale(pygame.image.load('reset_button.png'), (Tiles.TILE_SIZE, Tiles.TILE_SIZE))
         self.rect = self.image.get_rect(center=(win.get_width() // 2, win.get_height() - 30))
 
     def draw(self):
+        """displays the restart button image
+        """
         win.blit(self.image, self.rect)
 
     def handle_click(self, pos):
+        """ calls the restart function when the image is clicked
+        """
         if self.rect.collidepoint(pos):
             game.restart()
 
-
-# Define the Game class to manage the game loop and game objects
 class Game(object):
+    """ manages the main game features such as the restart function and the main game loop"""
     def __init__(self):
-        # DHB: initialising a library should not be done in an object initialiser like this. Move it to file scope, or move everything on file scope into this class (which would be a bad choice)
-        pygame.init()
-        # DHB: you're not really use the game_objects system... use it, or remove it  
         self.game_objects = []
-        # DHB: it is important to comment all member variables, explaining what they are used for and what they can contain, just like all functions and classes.
         self.tiles = None
         self.game_over = False
         self.game_won = False
-        self.game_won_message_printed = False
-        # DHB: for a state variable like this, it's especially important to ensure that the valid states are well defined. You could for example use a game state
-        # DHB: enumeration class, similar to the color class, to define the valid status
         self.state = "tutorial"
         self.clock = pygame.time.Clock()
         self.time_elapsed = 0
         self.start_time = 0
+        pygame.mouse.set_visible(True)
+        pygame.mouse.set_cursor(*pygame.cursors.tri_left)
 
         self.tutorial_screen = TutorialScreen()
         self.game_won_screen = GameWonScreen()
         self.reset_button = ResetButton()
 
     def add_game_objects(self, *list_of_game_objects, **dict_of_game_objects):
+        """ adds amount of game objects
+        """
         for game_object in list_of_game_objects:
             self.add_game_object(game_object)
         for game_object_id, game_object in dict_of_game_objects.items():
             self.add_game_object(game_object)
 
     def add_game_object(self, game_object):
+        """adds individual game object
+        """
         self.game_objects.append(game_object)
         if isinstance(game_object, Tiles):
             self.tiles = game_object
 
-    def get_game_objects_with_attribute(self, attribute_name):
-        return [game_object for game_object in self.game_objects if hasattr(game_object, attribute_name)]
-
-    def draw(self): # calls all of the draw functions
+    def draw(self):
+        """calls the draw functions required under certain circumstances
+        """
         
         if self.game_over:
             self.tiles.draw()
-
-        # DHB: I wonder if this 'game_won_message_printed' flag is a good idea. Draw loops usually draw everything
-        # DHB: in every frame, but I imagine this will only make the message be drawn in one frame 
-        if self.game_won and not self.game_won_message_printed:
+        
+        if self.game_won:
             self.game_won_screen.draw()
-            self.game_won_message_printed = True
-
         self.reset_button.draw()
 
-    def get_remaining_flags(self):
-        # DHB: it would be wise to name this count_remaining_flags, rather than get_remaining_flags, as get implies that the state already
-        # DHB: was calculated. This function is heavy for a 'get' method.
+        pygame.display.update
+
+    def count_remaining_flags(self):
+        """counts the amount of flags compared to be used in the flag function later
+        """
         count = 0
         for row in self.tiles.tile_state:
             for tile in row:
@@ -178,10 +170,11 @@ class Game(object):
         return count
 
     def loop(self):
+        """ handles the main game loop
+        """
         run = True
         while run:
 
-            # DHB: use a helper function for keyboard events, rather than mixing it into the main loop
             events = pygame.event.get()
             for event in events:
                 if event.type == pygame.QUIT:
@@ -189,13 +182,14 @@ class Game(object):
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_r:
                         self.restart()
+                    if event.key == pygame.K_ESCAPE:
+                        run = False
 
             if self.state == "tutorial":
                 self.tutorial_screen.handle_events(events)
                 self.tutorial_screen.draw()
-            elif self.state == "game": # detects clicks
-                win.fill(Color.BACKGROUND) # Clear the screen with the background color
-                # DHB: doing the mouse handling directly in the main loop is pretty yucky... please move to a helper function
+            elif self.state == "game":
+                win.fill(Color.BACKGROUND)
 
                 mouse_button_events = [event for event in events if event.type == pygame.MOUSEBUTTONUP]
                 for event in mouse_button_events:
@@ -203,59 +197,47 @@ class Game(object):
                         mouse_pos = pygame.mouse.get_pos()
                         if not self.game_over and self.tiles.collidepoint(mouse_pos):
                             if self.start_time == 0:
-                                self.start_time = pygame.time.get_ticks() # Start the timer on the first tile uncover
+                                self.start_time = pygame.time.get_ticks()
                             self.tiles.uncover(mouse_pos)
                         self.reset_button.handle_click(mouse_pos)
                     elif event.button == 3:
                         mouse_pos = pygame.mouse.get_pos()
                         if not self.game_over and self.tiles.collidepoint(mouse_pos):
                             self.tiles.flag(mouse_pos)
-                # DHB: the main loop logic and the draw code should be separated, by moving all draw calls into self.draw()
+
                 self.tiles.draw()
                 self.draw()
 
-            if self.game_won and not self.game_won_message_printed:
+            if self.game_won:
                 self.game_won_screen.draw()
                 self.state = "game_won"
 
             if self.state == "game_over" or self.state == "game_won":
                 self.game_won_screen.handle_events(events)
 
-            # DHB: this is ugly in and of itself. Add comment or move to helper function
             if self.start_time != 0 and not self.game_over and not self.game_won:
                 self.time_elapsed = (pygame.time.get_ticks() - self.start_time) // 1000
 
             if self.state != "tutorial":
-            # Render and blit the clock text onto the screen
-                # DHB: the comment above was incorreclty indented
                 font = pygame.font.SysFont(None, 36)
                 clock_text = font.render(f"Time: {self.time_elapsed}", True, Color.RED)
-                win.blit(clock_text, (760, 885)) # Display the clock text at (10, 10) position on the screen
+                win.blit(clock_text, (760, 885))
 
-            # DHB; the end of the main loop should likely just call self.draw, which should do the background fill, call all the sub-draw-functions, and then flip
             pygame.display.flip()
 
-    def restart(self): # restarts the game
-        # DHB: the __init__ function should call the restart function, rather than duplicating the logic of setting up the state in that function and here
-        self.tiles = Tiles() # Reinitialize the Tiles object
+    def restart(self):
+        """restarts the game to the tutorial state when triggered
+        """
+        self.tiles = Tiles()
         self.game_over = False
         self.game_won = False
-        self.game_won_message_printed = False
-        self.state = "tutorial" # Reset the game state
+        self.state = "tutorial"
         self.start_time = 0
         self.time_elapsed = 0
-        # DHB: this adds self.tiles as a game object every time the game is restarted, which is unnecessary
-        self.add_game_object(self.tiles) # Add the Tiles object back to the game_objects list
 
-# Define the Field class to represent the play area
-class Field(object):
-    def draw(self):
-        # DHB: I'm pretty certain that this is dead code, i.e. it is never called by anything.
-        win.fill(Color.BACKGROUND)
-
-# Define the Tiles class to handle the game tiles
 class Tiles(object):
-    # DHB: constants should always be in upper case
+    """handles the game tiles
+    """
     num_rows = 16
     num_columns = 16
     TILE_SIZE = 52
@@ -263,6 +245,7 @@ class Tiles(object):
     BUFFER = 5
 
     def __init__(self):
+        """ sets variables for use later"""
         self.tile_state = self.create_initial_state()
         self.place_mines()
         self.calculate_adjacent_mines()
@@ -273,6 +256,8 @@ class Tiles(object):
         self.num_flags = 0
 
     def create_initial_state(self):
+        """sets the tiles to the base values and can be altered later
+        """
         state = []
         for row in range(self.num_rows):
             row_state = []
@@ -289,15 +274,13 @@ class Tiles(object):
         return state
 
     def calculate_adjacent_mines(self):
-        # Calculate and store the number of adjacent mines for each tile
-        # DHB: advanced exercise, please make a generator function that enumerates all tiles in the grid, returning tuples of (row, column, tile), and
-        # DHB: use that function instead for this pattern in this class.
+        """Calculate and store the number of adjacent mines for each tile
+        """
         for row in range(self.num_rows):
             for column in range(self.num_columns):
                 tile = self.tile_state[row][column]
                 if not tile['mine']:
                     adjacent_mines = 0
-                    # DHB: also please make a generator that enumerates all adjacent tiles of a tile, and use that instead for this pattern
                     for dx in range(-1, 2):
                         for dy in range(-1, 2):
                             if dx == 0 and dy == 0:
@@ -313,7 +296,9 @@ class Tiles(object):
                     tile['adjacent_mines'] = adjacent_mines
 
     def place_mines(self):
-        num_mines = 40 # Number of mines to place
+        """places mines until it reaches the specified number of mines
+        """
+        num_mines = 40
         while num_mines >0:
             row = random.randint(0, self.num_rows - 1)
             column = random.randint(0, self.num_columns - 1)
@@ -322,10 +307,10 @@ class Tiles(object):
                 num_mines -=1
 
     def uncover(self, pos):
+        """ uncovers tiles when they are clicked and check for win or lose conditions when the tiles are uncovered
+        """
         for row in range(self.num_rows):
             for column in range(self.num_columns):
-                # DHB: please refactor so that each tile is a separate Tile instance, and move tile state into that class instead of using
-                # DHB: a dictionary
                 x = column * (self.TILE_SIZE + self.GAP) + self.BUFFER
                 y = row * (self.TILE_SIZE + self.GAP)
                 rect = pygame.Rect(x, y, self.TILE_SIZE, self.TILE_SIZE)
@@ -336,12 +321,9 @@ class Tiles(object):
                     if tile['covered']:
                         tile['covered'] = False
                         if tile['mine']:
-                            # DHB: again, no changing directly the state variables of another object. That should be done in member functions of the object.
                             game.game_over = True
-                            # calls self.reveal_board on game over
                             self.reveal_board()
                         else:
-                            # DHB: this should be separated into a helper function that updates the adjacent mines for a tile
                             count = 0
                             for r in range(row - 1, row + 2):
                                 for c in range(column - 1, column + 2):
@@ -353,7 +335,6 @@ class Tiles(object):
                                         count += 1
                             tile['adjacent_mines'] = count
 
-                            # Check win condition
                             num_covered_non_mines = sum(
                                 sum(1 for tile in row if tile['covered'] and not tile['mine'])
                                 for row in self.tile_state
@@ -361,38 +342,42 @@ class Tiles(object):
                             if num_covered_non_mines == 0:
                                 game.game_won = True
                             if tile['adjacent_mines'] == 0:
-                                self.clear_adjacent_tiles(row, column) # Call clear_adjacent_tiles for tiles with zero adjacent mines
+                                self.clear_adjacent_tiles(row, column)
 
-    def reveal_board(self): # reveals the mines on the board
+    def reveal_board(self):
+        """reveals the mines on the board, is called when a mine is clicked and the game is over
+        """
         for row in range(self.num_rows):
             for column in range(self.num_columns):
                 if self.tile_state[row][column]['mine']:
                     self.tile_state[row][column]['covered'] = False
 
-    def flag(self, pos): # creates flags
+    def flag(self, pos):
+        """places flags, is called on right click"""
         for row in range(self.num_rows):
             for column in range(self.num_columns):
                 x = column * (self.TILE_SIZE + self.GAP) + self.BUFFER
                 y = row * (self.TILE_SIZE + self.GAP)
-                # DHB: note that hit-testing a tile should also be moved to the Tile class
                 rect = pygame.Rect(x, y, self.TILE_SIZE, self.TILE_SIZE)
                 if rect.collidepoint(pos):
                     tile = self.tile_state[row][column]
                     if tile['flagged']:
-                        tile['flagged'] = False # Unflag the tile
-                        self.num_flags -= 1 # Decrement the flag count
+                        tile['flagged'] = False 
+                        self.num_flags -= 1
                     elif tile['covered']:
-                        if self.num_flags < 40: # Maximum number of flags is 40 (equal to the number of mines)
-                            tile['flagged'] = True # Flag the tile
-                            self.num_flags += 1 # Increment the flag count
+                        if self.num_flags < 40:
+                            tile['flagged'] = True
+                            self.num_flags += 1
 
-    def draw(self): # draws the game elments
+    def draw(self):
+        """draws tiles
+        """
         for row in range(self.num_rows):
             for column in range(self.num_columns):
                 x = column * (self.TILE_SIZE + self.GAP) + self.BUFFER
                 y = row * (self.TILE_SIZE + self.GAP)
                 tile = self.tile_state[row][column]
-                # DHB: we should ask each Tile to draw itself, rather than do it here
+
                 if tile['covered']:
                     color = Color.GRAY
                 else:
@@ -418,11 +403,9 @@ class Tiles(object):
                     self.draw_mine(x, y)
 
                 if not tile['covered'] and not tile['mine'] and tile['adjacent_mines'] >= 1:
-                    # Shows the number of mines adjacent to uncovered
                     adjacent_mines = tile['adjacent_mines']
                     font = pygame.font.Font(None, 30)
 
-                    # Set the color based on the number of adjacent mines
                     if adjacent_mines == 1:
                         text_color = Color.BLUE
                     elif adjacent_mines == 2:
@@ -449,15 +432,21 @@ class Tiles(object):
 
         font = pygame.font.SysFont(None, 36)
         flag_text = font.render(f"Flags: {40 - self.num_flags}", True, Color.RED)
-        win.blit(flag_text, (30, 885)) # Display the flag count at (30, 885) position on the screen
+        win.blit(flag_text, (30, 885))
 
     def draw_flag(self, x, y):
+        """draws flags
+        """
         win.blit(self.flag_image, (x, y))
 
     def draw_mine(self, x, y):
+        """draws mines
+        """
         win.blit(self.mine_image, (x, y))
 
-    def collidepoint(self, pos): # detects where a tile is and relays to detect clicks
+    def collidepoint(self, pos):
+        """detects where a tile is and relays to use when detecting clicks
+        """
         for row in range(self.num_rows):
             for column in range(self.num_columns):
                 x = column * (self.TILE_SIZE + self.GAP) + self.BUFFER
@@ -467,7 +456,9 @@ class Tiles(object):
                     return True
         return False
 
-    def clear_adjacent_tiles(self, row, column): # clears tiles adjacent to 0 tiles
+    def clear_adjacent_tiles(self, row, column):
+        """this clears tiles that are adjacent to tiles with 0 adjacent mines
+        """
         for r in range(row - 1, row + 2):
             for c in range(column - 1, column + 2):
                 if (
@@ -478,27 +469,22 @@ class Tiles(object):
                 ):
                     self.tile_state[r][c]['covered'] = False
                     if self.tile_state[r][c]['adjacent_mines'] == 0:
-                        self.clear_adjacent_tiles(r, c) # Recursively clear adjacent tiles
+                        self.clear_adjacent_tiles(r, c)
 
-# Define the Mouse class to handle mouse-related functionality
-class Mouse(object):
-    def __init__(self):
-        # DHB: this class is only being use as a side-effect of initialising it. Either use it properly, or remove it, and move the init code elsewhere
-        pygame.mouse.set_visible(True)
-        pygame.mouse.set_cursor(*pygame.cursors.tri_left)
+"""Create the game window"""
+win = pygame.display.set_mode((888, 938))
+pygame.display.set_caption("Minesweeper")
 
-# Create the game instance
+"""Create the game instance"""
 game = Game()
 
-# Add game objects to the game instance
+"""Add game objects to the game instance"""
 game.add_game_objects(
-    field=Field(),
     tiles=Tiles(),
-    mouse=Mouse(),
 )
 
-# Start the game loop
+"""Start the game loop"""
 game.loop()
 
-# Quit Pygame
+"""Quit Pygame"""
 pygame.quit()

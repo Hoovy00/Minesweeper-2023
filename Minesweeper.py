@@ -1,9 +1,8 @@
 import pygame
 import random
-pygame.init()
 
 class Color(object):
-    """ Define the Color class to store color values
+    """ store color values in constants to not use harcoded values later
     """
     GRAY = (155, 155, 155)
     BACKGROUND = (120, 120, 120)
@@ -20,10 +19,13 @@ class Color(object):
 class TutorialScreen(object):
     """ displays a tutorial screen in the beginning of the game
     """
-    def __init__(self):
-        """ contains the information for the text in the tutorial screen so that it can be used in the draw function
+    def __init__(self, game):
+        """ initialises the class and contains the information for the text displayed in the tutorial screen using self.message so that we don't need to hard code in the draw function
         """
+        self.game = game
+        # Font for tutorial text
         self.font = pygame.font.Font(None, 30)
+        # Color for tutorial text
         self.text_color = Color.BLACK
         self.message = [
             "Minesweeper Tutorial",
@@ -43,27 +45,29 @@ class TutorialScreen(object):
     def draw(self):
         """ draws the tutorial screen using the text information from the init function
         """
-        win.fill(Color.BACKGROUND)
-        for i, instruction in enumerate(self.message):
-            text = self.font.render(instruction, True, self.text_color)
-            text_rect = text.get_rect(center=(win.get_width() // 2, 100 + i * 30))
-            win.blit(text, text_rect)
+        self.game.win.fill(Color.BACKGROUND)
+        for i, message in enumerate(self.message):
+            x = (self.game.win.get_width() // 2)
+            y = ( 100 + i * 30)
+            text = self.font.render(message, True, self.text_color)
+            text_rect = text.get_rect(center=(x, y))
+            self.game.win.blit(text, text_rect)
 
     def handle_events(self, events):
-        """ causes the transition from the tutorial state to the game state
+        """ detects a SPACE press and causes the transition from the tutorial state to the game state
         """
         for event in events:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    game.state = "game"
-
+                    self.game.state = "game"
 
 class GameWonScreen(object):
-    """ displays the game won screen
+    """ handles all functions needed for the game won screen to be displayed and function properly
     """
-    def __init__(self):
-        """ contains the text info to use in the draw function
+    def __init__(self, game):
+        """ contains information about the text so that we don't hardcode in draw and it is used in the draw function to pass information
         """
+        self.game = game
         self.font = pygame.font.Font(None, 30)
         self.text_color = Color.BLACK
         self.message = [
@@ -77,13 +81,10 @@ class GameWonScreen(object):
     def draw(self):
         """ draws the game won screen using the information in the init function
         """
-        win.fill(Color.BACKGROUND)
-        for i, instruction in enumerate(self.message):
-            text = self.font.render(instruction, True, self.text_color)
-            text_rect = text.get_rect(center=(win.get_width() // 2, 100 + i * 30))
-            win.blit(text, text_rect)
-
-        pygame.display.update()
+        for i, message in enumerate(self.message):
+            text = self.font.render(message, True, self.text_color)
+            text_rect = text.get_rect(center=(self.game.win.get_width() // 2,100 + i * 30))
+            self.game.win.blit(text, text_rect)
 
     def handle_events(self, events):
         """ restarts the program when R is pressed and quits the program when ESCAPE is pressed
@@ -91,21 +92,25 @@ class GameWonScreen(object):
         for event in events:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
-                    game.restart()
+                    self.game.restart()
                 if event.key == pygame.K_ESCAPE:
-                    run = False
+                    pygame.QUIT()
 
 class ResetButton(object):
     """ displays an image which calls the reset function when clicked
     """
-    def __init__(self):
+
+    def __init__(self, game):
+        self.game = game
+        x = (self.game.win.get_width() // 2)
+        y = (self.game.win.get_height() - 30)
         self.image = pygame.transform.scale(pygame.image.load('reset_button.png'), (Tiles.TILE_SIZE, Tiles.TILE_SIZE))
-        self.rect = self.image.get_rect(center=(win.get_width() // 2, win.get_height() - 30))
+        self.rect = self.image.get_rect(center=(x, y))
 
     def draw(self):
         """displays the restart button image
         """
-        win.blit(self.image, self.rect)
+        self.game.win.blit(self.image, self.rect)
 
     def handle_click(self, pos):
         """ calls the restart function when the image is clicked
@@ -116,48 +121,38 @@ class ResetButton(object):
 class Game(object):
     """ manages the main game features such as the restart function and the main game loop"""
     def __init__(self):
-        self.game_objects = []
-        self.tiles = None
+        # Create the game window
+        self.win = pygame.display.set_mode((888, 938))
+        # sets the game over state as false and can be changed later
         self.game_over = False
+        # sets the game won state as false and can be changed later
         self.game_won = False
+        # sets the begginning state to the tutorial state and can be changed later
         self.state = "tutorial"
-        self.clock = pygame.time.Clock()
+        # sets how much time has passed
         self.time_elapsed = 0
+        # sets the time you start with
         self.start_time = 0
+        # sets the cursor as visible
         pygame.mouse.set_visible(True)
+        # sets the look of the cursor
         pygame.mouse.set_cursor(*pygame.cursors.tri_left)
 
-        self.tutorial_screen = TutorialScreen()
-        self.game_won_screen = GameWonScreen()
-        self.reset_button = ResetButton()
-
-    def add_game_objects(self, *list_of_game_objects, **dict_of_game_objects):
-        """ adds amount of game objects
-        """
-        for game_object in list_of_game_objects:
-            self.add_game_object(game_object)
-        for game_object_id, game_object in dict_of_game_objects.items():
-            self.add_game_object(game_object)
-
-    def add_game_object(self, game_object):
-        """adds individual game object
-        """
-        self.game_objects.append(game_object)
-        if isinstance(game_object, Tiles):
-            self.tiles = game_object
+        self.tutorial_screen = TutorialScreen(self)
+        self.game_won_screen = GameWonScreen(self)
+        self.reset_button = ResetButton(self)
+        self.tiles = Tiles(self)
 
     def draw(self):
         """calls the draw functions required under certain circumstances
         """
-        
-        if self.game_over:
-            self.tiles.draw()
-        
-        if self.game_won:
-            self.game_won_screen.draw()
+        self.win.fill(Color.BACKGROUND)
+        self.tiles.draw()
         self.reset_button.draw()
 
-        pygame.display.update
+        if self.game_won:
+            self.win.fill(Color.BACKGROUND)
+            self.game_won_screen.draw()
 
     def count_remaining_flags(self):
         """counts the amount of flags compared to be used in the flag function later
@@ -189,7 +184,7 @@ class Game(object):
                 self.tutorial_screen.handle_events(events)
                 self.tutorial_screen.draw()
             elif self.state == "game":
-                win.fill(Color.BACKGROUND)
+                self.win.fill(Color.BACKGROUND)
 
                 mouse_button_events = [event for event in events if event.type == pygame.MOUSEBUTTONUP]
                 for event in mouse_button_events:
@@ -221,14 +216,14 @@ class Game(object):
             if self.state != "tutorial":
                 font = pygame.font.SysFont(None, 36)
                 clock_text = font.render(f"Time: {self.time_elapsed}", True, Color.RED)
-                win.blit(clock_text, (760, 885))
+                self.win.blit(clock_text, (760, 885))
 
             pygame.display.flip()
 
     def restart(self):
         """restarts the game to the tutorial state when triggered
         """
-        self.tiles = Tiles()
+        self.tiles = Tiles(self)
         self.game_over = False
         self.game_won = False
         self.state = "tutorial"
@@ -244,8 +239,9 @@ class Tiles(object):
     GAP = 3
     BUFFER = 5
 
-    def __init__(self):
-        """ sets variables for use later"""
+    def __init__(self, game):
+        """ initialises the Tiles class and sets variables for use later"""
+        self.game = game
         self.tile_state = self.create_initial_state()
         self.place_mines()
         self.calculate_adjacent_mines()
@@ -321,7 +317,7 @@ class Tiles(object):
                     if tile['covered']:
                         tile['covered'] = False
                         if tile['mine']:
-                            game.game_over = True
+                            self.game.game_over = True
                             self.reveal_board()
                         else:
                             count = 0
@@ -340,7 +336,7 @@ class Tiles(object):
                                 for row in self.tile_state
                             )
                             if num_covered_non_mines == 0:
-                                game.game_won = True
+                                self.game.game_won = True
                             if tile['adjacent_mines'] == 0:
                                 self.clear_adjacent_tiles(row, column)
 
@@ -370,7 +366,7 @@ class Tiles(object):
                             self.num_flags += 1
 
     def draw(self):
-        """draws tiles
+        """ this draws all of the tiles, also draws the updated versions such as when the uncover or flag funtions are called
         """
         for row in range(self.num_rows):
             for column in range(self.num_columns):
@@ -383,21 +379,21 @@ class Tiles(object):
                 else:
                     color = Color.BACKGROUND
 
-                pygame.draw.rect(win, color, (x, y, self.TILE_SIZE, self.TILE_SIZE))
+                pygame.draw.rect(self.game.win, color, (x, y, self.TILE_SIZE, self.TILE_SIZE))
 
                 if not tile['covered']:
                     border_color = (Color.DARK_GRAY)
                     border_width = 1
-                    pygame.draw.rect(win, border_color, (x, y, self.TILE_SIZE, self.TILE_SIZE), border_width)
+                    pygame.draw.rect(self.game.win, border_color, (x, y, self.TILE_SIZE, self.TILE_SIZE), border_width)
 
                 if tile['covered']:
                     border_width = 2
                     if column < self.num_columns - 1:
-                        pygame.draw.line(win, Color.WHITE, (x + self.TILE_SIZE, y), (x + self.TILE_SIZE, y + self.TILE_SIZE), border_width)
+                        pygame.draw.line(self.game.win, Color.WHITE, (x + self.TILE_SIZE, y), (x + self.TILE_SIZE, y + self.TILE_SIZE), border_width)
                     if row < self.num_rows - 1:
-                        pygame.draw.line(win, Color.WHITE, (x, y + self.TILE_SIZE), (x + self.TILE_SIZE, y + self.TILE_SIZE), border_width)
-                    pygame.draw.line(win, Color.DARK_GRAY, (x, y), (x + self.TILE_SIZE, y), border_width)
-                    pygame.draw.line(win, Color.DARK_GRAY, (x, y), (x, y + self.TILE_SIZE), border_width)
+                        pygame.draw.line(self.game.win, Color.WHITE, (x, y + self.TILE_SIZE), (x + self.TILE_SIZE, y + self.TILE_SIZE), border_width)
+                    pygame.draw.line(self.game.win, Color.DARK_GRAY, (x, y), (x + self.TILE_SIZE, y), border_width)
+                    pygame.draw.line(self.game.win, Color.DARK_GRAY, (x, y), (x, y + self.TILE_SIZE), border_width)
 
                 if not tile['covered'] and tile['mine']:
                     self.draw_mine(x, y)
@@ -425,24 +421,24 @@ class Tiles(object):
 
                     text = font.render(str(adjacent_mines), True, text_color)
                     text_rect = text.get_rect(center=(x + self.TILE_SIZE // 2, y + self.TILE_SIZE // 2))
-                    win.blit(text, text_rect)
+                    self.game.win.blit(text, text_rect)
 
                 if tile['flagged']:
                     self.draw_flag(x, y)
 
         font = pygame.font.SysFont(None, 36)
         flag_text = font.render(f"Flags: {40 - self.num_flags}", True, Color.RED)
-        win.blit(flag_text, (30, 885))
+        self.game.win.blit(flag_text, (30, 885))
 
     def draw_flag(self, x, y):
         """draws flags
         """
-        win.blit(self.flag_image, (x, y))
+        self.game.win.blit(self.flag_image, (x, y))
 
     def draw_mine(self, x, y):
         """draws mines
         """
-        win.blit(self.mine_image, (x, y))
+        self.game.win.blit(self.mine_image, (x, y))
 
     def collidepoint(self, pos):
         """detects where a tile is and relays to use when detecting clicks
@@ -471,20 +467,15 @@ class Tiles(object):
                     if self.tile_state[r][c]['adjacent_mines'] == 0:
                         self.clear_adjacent_tiles(r, c)
 
-"""Create the game window"""
-win = pygame.display.set_mode((888, 938))
+pygame.init()
+
 pygame.display.set_caption("Minesweeper")
 
-"""Create the game instance"""
+# Create the game instance
 game = Game()
 
-"""Add game objects to the game instance"""
-game.add_game_objects(
-    tiles=Tiles(),
-)
-
-"""Start the game loop"""
+# Start the game loop
 game.loop()
 
-"""Quit Pygame"""
+# Quit Pygame
 pygame.quit()

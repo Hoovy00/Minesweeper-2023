@@ -20,34 +20,42 @@ class GameState(object):
     """ changes the game states which are used in the code to fulfill conditions"""
     def __init__(self):
         """sets the states to their beginning values, which can then be chaged later"""
+        
+        # sets the beginning state of tutorial
         self.tutorial = True
+
+        # sets the beginning state of game
         self.game = False
+
+        # sets the beginning state of game_over
         self.game_over = False
+
+        # sets the beginning state of game_won
         self.game_won = False
 
     def set_state_tutorial(self):
-        if self.tutorial == True:
-            self.tutorial = False
-        elif self.tutorial == False:
-            self.tutorial = True
+        self.tutorial = True
+        self.game_over = False
+        self.game_won = False
+        self.game = False
 
     def set_state_game(self):
-        if self.game == True:
-            self.game = False
-        elif self.game == False:
-            self.game = True
+        self.tutorial = False
+        self.game_over = False
+        self.game_won = False
+        self.game = True
 
     def set_state_game_over(self):
-        if self.game_over == True:
-            self.game_over = False
-        elif self.game_over == False:
-            self.game_over = True
+        self.tutorial = False
+        self.game_over = True
+        self.game_won = False
+        self.game = False
     
     def set_state_game_won(self):
-        if self.game_won == True:
-            self.game_won = False
-        elif self.game_won == False:
-            self.game_won = True
+        self.tutorial = False
+        self.game_over = False
+        self.game_won = True
+        self.game = False
 
 class TutorialScreen(object):
     """ displays a tutorial screen in the beginning of the game
@@ -90,10 +98,8 @@ class TutorialScreen(object):
         """ detects a SPACE press and causes the transition from the tutorial state to the game state
         """
         for event in events:
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    self.game.gamestate.set_state_game()
-                    self.game.gamestate.set_state_tutorial()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                self.game.gamestate.set_state_game()
 
 class GameWonScreen(object):
     """ handles all functions needed for the game won screen to be displayed and function properly
@@ -124,9 +130,8 @@ class GameWonScreen(object):
         """ restarts the program when R is pressed and quits the program when ESCAPE is pressed
         """
         for event in events:
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:
-                    self.game.restart()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                self.game.restart()
 
 class ResetButton(object):
     """ displays an image which calls the reset function when clicked
@@ -175,10 +180,29 @@ class Game(object):
         self.gamestate = GameState()
         self.tiles = Tiles(self)
 
+    def handle_game_events(self, events):
+        if self.gamestate.tutorial:
+            self.tutorial_screen.handle_events(events)
+
+        if self.gamestate.game or self.gamestate.game_over or self.gamestate.game_won:
+            mouse_button_events = [event for event in events if event.type == pygame.MOUSEBUTTONUP]
+            for event in mouse_button_events:
+                if event.button == 1:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if not self.gamestate.game_over and self.tiles.collidepoint(mouse_pos):
+                        if self.start_time == 0:
+                            self.start_time = pygame.time.get_ticks()
+                        self.tiles.uncover(mouse_pos)
+                    self.reset_button.handle_click(mouse_pos)
+                elif event.button == 3:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if not self.gamestate.game_over and self.tiles.collidepoint(mouse_pos):
+                        self.tiles.flag(mouse_pos)
+
+
     def draw(self):
         """calls the draw functions required under certain circumstances
         """
-        events = pygame.event.get()
         self.win.fill(Color.BACKGROUND)
         self.tiles.draw()
         self.reset_button.draw()
@@ -187,21 +211,18 @@ class Game(object):
             self.win.fill(Color.BACKGROUND)
             self.game_won_screen.draw()
 
-        if self.gamestate.game_won:
-            self.game_won_screen.draw()
-
-        if self.gamestate.game_over == True or self.gamestate.game_won == True:
-            self.game_won_screen.handle_events(events)
-
         if self.start_time != 0 and not self.gamestate.game_over and not self.gamestate.game_won:
             self.time_elapsed = (pygame.time.get_ticks() - self.start_time) // 1000
 
-        if self.gamestate.tutorial == False:
+        if not self.gamestate.tutorial:
             font = pygame.font.SysFont(None, 36)
             clock_text = font.render(f"Time: {self.time_elapsed}", True, Color.RED)
             self.win.blit(clock_text, (760, 885))
         
-        if self.gamestate.game == True:
+        if self.gamestate.tutorial:
+            self.tutorial_screen.draw()
+        
+        if self.gamestate.game:
             self.tiles.draw()
 
     def count_remaining_flags(self):
@@ -229,28 +250,8 @@ class Game(object):
                         self.restart()
                     if event.key == pygame.K_ESCAPE:
                         run = False
-
-            if self.gamestate.tutorial == True:
-                self.tutorial_screen.handle_events(events)
-                self.tutorial_screen.draw()
-            elif self.gamestate.game == True:
-                self.win.fill(Color.BACKGROUND)
-
-                mouse_button_events = [event for event in events if event.type == pygame.MOUSEBUTTONUP]
-                for event in mouse_button_events:
-                    if event.button == 1:
-                        mouse_pos = pygame.mouse.get_pos()
-                        if not self.gamestate.game_over and self.tiles.collidepoint(mouse_pos):
-                            if self.start_time == 0:
-                                self.start_time = pygame.time.get_ticks()
-                            self.tiles.uncover(mouse_pos)
-                        self.reset_button.handle_click(mouse_pos)
-                    elif event.button == 3:
-                        mouse_pos = pygame.mouse.get_pos()
-                        if not self.gamestate.game_over and self.tiles.collidepoint(mouse_pos):
-                            self.tiles.flag(mouse_pos)
-
-                self.draw()
+            self.handle_game_events(events)
+            self.draw()
 
             pygame.display.flip()
 
@@ -258,8 +259,6 @@ class Game(object):
         """restarts the game to the tutorial state when triggered
         """
         self.tiles = Tiles(self)
-        self.gamestate.game_over = False
-        self.gamestate.game_won = False
         self.gamestate.set_state_game()
         self.start_time = 0
         self.time_elapsed = 0
@@ -351,8 +350,7 @@ class Tiles(object):
                     if tile['covered']:
                         tile['covered'] = False
                         if tile['mine']:
-                            self.game.gamestate.game_over = True
-                            self.game.gamestate.game = False
+                            game.gamestate.set_state_game_over()
                             self.reveal_board()
                         else:
                             count = 0
@@ -371,8 +369,7 @@ class Tiles(object):
                                 for row in self.tile_state
                             )
                             if num_covered_non_mines == 0:
-                                self.game.gamestate.game_won = True
-                                self.game.gamestate.game = False
+                                game.gamestate.set_state_game_won()
                                 self.draw()
                             if tile['adjacent_mines'] == 0:
                                 self.clear_adjacent_tiles(row, column)

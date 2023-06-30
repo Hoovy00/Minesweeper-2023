@@ -154,6 +154,8 @@ class ResetButton(object):
             game.restart()
 
 class GameClock(object):
+    """ creates a clock to display your time
+    """
     def __init__(self):
 
         # sets how much time has passed
@@ -173,6 +175,7 @@ class GameClock(object):
             game.win.blit(clock_text, (760, 885))
 
 class GameEventHandler(object):
+    """ handles game events, only clicks currently"""
 
     def click(self, events):
 
@@ -203,6 +206,7 @@ class GameEventHandler(object):
         
 class Game(object):
     """ manages the main game features such as the restart function and the main game loop"""
+
     def __init__(self):
 
         # Create the game window
@@ -282,37 +286,19 @@ class Game(object):
         """
         self.tiles = Tiles(self)
         self.gamestate.set_state_game()
-        self.start_time = 0
-        self.time_elapsed = 0
+        self.gameclock.start_time = 0
+        self.gameclock.time_elapsed = 0 
 
-class Tiles(object):
-    """handles the game tiles
+class Tile(object):
+    """handles individual tiles
     """
-    num_rows = 16
-    num_columns = 16
-    TILE_SIZE = 52
-    GAP = 3
-    BUFFER = 5
-
-    def __init__(self, game):
-        """ initialises the Tiles class and sets variables for use later"""
-        self.game = game
-        self.tile_state = self.create_initial_state()
-        self.place_mines()
-        self.calculate_adjacent_mines()
-        self.flag_image = pygame.image.load('flag.png')
-        self.flag_image = pygame.transform.scale(pygame.image.load('flag.png'), (self.TILE_SIZE, self.TILE_SIZE))
-        self.mine_image = pygame.image.load('mine.png')
-        self.mine_image = pygame.transform.scale(pygame.image.load('mine.png'), (self.TILE_SIZE, self.TILE_SIZE))
-        self.num_flags = 0
-
     def create_initial_state(self):
         """sets the tiles to the base values and can be altered later
         """
         state = []
-        for row in range(self.num_rows):
+        for row in range(Tiles.num_rows):
             row_state = []
-            for column in range(self.num_columns):
+            for column in range(Tiles.num_columns):
                 tile = {
                     'covered': True,
                     'mine': False,
@@ -327,8 +313,8 @@ class Tiles(object):
     def calculate_adjacent_mines(self):
         """Calculate and store the number of adjacent mines for each tile
         """
-        for row in range(self.num_rows):
-            for column in range(self.num_columns):
+        for row in range(Tiles.num_rows):
+            for column in range(Tiles.num_columns):
                 tile = self.tile_state[row][column]
                 if not tile['mine']:
                     adjacent_mines = 0
@@ -339,8 +325,8 @@ class Tiles(object):
                             new_row = row + dx
                             new_column = column + dy
                             if (
-                                new_row >= 0 and new_row < self.num_rows
-                                and new_column >= 0 and new_column < self.num_columns
+                                new_row >= 0 and new_row < Tiles.num_rows
+                                and new_column >= 0 and new_column < Tiles.num_columns
                                 and self.tile_state[new_row][new_column]['mine']
                             ):
                                 adjacent_mines += 1
@@ -356,6 +342,28 @@ class Tiles(object):
             if not self.tile_state[row][column]['mine']:
                 self.tile_state[row][column]['mine'] = True
                 num_mines -=1
+
+class Tiles(object):
+    """handles the game tiles
+    """
+    num_rows = 16
+    num_columns = 16
+    TILE_SIZE = 52
+    GAP = 3
+    BUFFER = 5
+
+    def __init__(self, game):
+        """ initialises the Tiles class and sets variables for use later
+        """
+        self.game = game
+        self.tile_state = Tile.create_initial_state(self)
+        Tile.place_mines(self)
+        Tile.calculate_adjacent_mines(self)
+        self.flag_image = pygame.image.load('flag.png')
+        self.flag_image = pygame.transform.scale(pygame.image.load('flag.png'), (self.TILE_SIZE, self.TILE_SIZE))
+        self.mine_image = pygame.image.load('mine.png')
+        self.mine_image = pygame.transform.scale(pygame.image.load('mine.png'), (self.TILE_SIZE, self.TILE_SIZE))
+        self.num_flags = 0
 
     def uncover(self, pos):
         """ uncovers tiles when they are clicked and check for win or lose conditions when the tiles are uncovered
@@ -517,9 +525,9 @@ class Tiles(object):
                     0 <= r < self.num_rows
                     and 0 <= c < self.num_columns
                     and self.tile_state[r][c]['covered']
-                    and not self.tile_state[r][c]['flagged']
                 ):
                     self.tile_state[r][c]['covered'] = False
+                    self.tile_state[r][c]['flagged'] = False
                     if self.tile_state[r][c]['adjacent_mines'] == 0:
                         self.clear_adjacent_tiles(r, c)
 

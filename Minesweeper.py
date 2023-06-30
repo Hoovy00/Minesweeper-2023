@@ -32,30 +32,28 @@ class GameState(object):
 
         # sets the beginning state of game_won
         self.game_won = False
+    
+    def clear_state(self):
+        self.tutorial = False
+        self.game = False
+        self.game_over = False
+        self.game_won = False
 
     def set_state_tutorial(self):
+        self.clear_state()
         self.tutorial = True
-        self.game_over = False
-        self.game_won = False
-        self.game = False
 
     def set_state_game(self):
-        self.tutorial = False
-        self.game_over = False
-        self.game_won = False
+        self.clear_state()
         self.game = True
 
     def set_state_game_over(self):
-        self.tutorial = False
+        self.clear_state()
         self.game_over = True
-        self.game_won = False
-        self.game = False
     
     def set_state_game_won(self):
-        self.tutorial = False
-        self.game_over = False
+        self.clear_state()
         self.game_won = True
-        self.game = False
 
 class TutorialScreen(object):
     """ displays a tutorial screen in the beginning of the game
@@ -155,18 +153,60 @@ class ResetButton(object):
         if self.rect.collidepoint(pos):
             game.restart()
 
-class Game(object):
-    """ manages the main game features such as the restart function and the main game loop"""
+class GameClock(object):
     def __init__(self):
-
-        # Create the game window
-        self.win = pygame.display.set_mode((888, 938))
 
         # sets how much time has passed
         self.time_elapsed = 0
 
         # sets the time you start with
         self.start_time = 0
+    
+    def clock(self):
+
+        if self.start_time != 0 and not game.gamestate.game_over and not game.gamestate.game_won:
+            self.time_elapsed = (pygame.time.get_ticks() - self.start_time) // 1000
+
+        if not game.gamestate.tutorial:
+            font = pygame.font.SysFont(None, 36)
+            clock_text = font.render(f"Time: {self.time_elapsed}", True, Color.RED)
+            game.win.blit(clock_text, (760, 885))
+
+class GameEventHandler(object):
+
+    def click(self, events):
+
+        if not game.gamestate.tutorial:
+            mouse_button_events = [event for event in events if event.type == pygame.MOUSEBUTTONUP]
+            
+            for event in mouse_button_events:
+                mouse_pos = pygame.mouse.get_pos()
+                if event.button == 1:
+                    self.left_click(mouse_pos)
+                    self.reset_button_click(mouse_pos)
+                
+                elif event.button == 3:
+                    self.right_click(mouse_pos)
+
+    def left_click(self, mouse_pos):
+        if not game.gamestate.game_over and game.tiles.collidepoint(mouse_pos):
+            if game.gameclock.start_time == 0:
+                game.gameclock.start_time = pygame.time.get_ticks()
+            game.tiles.uncover(mouse_pos)
+
+    def right_click(self, mouse_pos):
+        if not game.gamestate.game_over and game.tiles.collidepoint(mouse_pos):
+            game.tiles.flag(mouse_pos)
+    
+    def reset_button_click(self, mouse_pos):
+        game.reset_button.handle_click(mouse_pos)
+        
+class Game(object):
+    """ manages the main game features such as the restart function and the main game loop"""
+    def __init__(self):
+
+        # Create the game window
+        self.win = pygame.display.set_mode((888, 938))
 
         # sets the cursor as visible
         pygame.mouse.set_visible(True)
@@ -178,27 +218,15 @@ class Game(object):
         self.game_won_screen = GameWonScreen(self)
         self.reset_button = ResetButton(self)
         self.gamestate = GameState()
+        self.gameclock = GameClock()
+        self.gameeventhandler = GameEventHandler()
         self.tiles = Tiles(self)
 
     def handle_game_events(self, events):
         if self.gamestate.tutorial:
             self.tutorial_screen.handle_events(events)
 
-        if self.gamestate.game or self.gamestate.game_over or self.gamestate.game_won:
-            mouse_button_events = [event for event in events if event.type == pygame.MOUSEBUTTONUP]
-            for event in mouse_button_events:
-                if event.button == 1:
-                    mouse_pos = pygame.mouse.get_pos()
-                    if not self.gamestate.game_over and self.tiles.collidepoint(mouse_pos):
-                        if self.start_time == 0:
-                            self.start_time = pygame.time.get_ticks()
-                        self.tiles.uncover(mouse_pos)
-                    self.reset_button.handle_click(mouse_pos)
-                elif event.button == 3:
-                    mouse_pos = pygame.mouse.get_pos()
-                    if not self.gamestate.game_over and self.tiles.collidepoint(mouse_pos):
-                        self.tiles.flag(mouse_pos)
-
+        self.gameeventhandler.click(events)
 
     def draw(self):
         """calls the draw functions required under certain circumstances
@@ -210,20 +238,14 @@ class Game(object):
         if self.gamestate.game_won:
             self.win.fill(Color.BACKGROUND)
             self.game_won_screen.draw()
-
-        if self.start_time != 0 and not self.gamestate.game_over and not self.gamestate.game_won:
-            self.time_elapsed = (pygame.time.get_ticks() - self.start_time) // 1000
-
-        if not self.gamestate.tutorial:
-            font = pygame.font.SysFont(None, 36)
-            clock_text = font.render(f"Time: {self.time_elapsed}", True, Color.RED)
-            self.win.blit(clock_text, (760, 885))
         
         if self.gamestate.tutorial:
             self.tutorial_screen.draw()
         
         if self.gamestate.game:
             self.tiles.draw()
+        
+        self.gameclock.clock()
 
     def count_remaining_flags(self):
         """counts the amount of flags compared to be used in the flag function later
